@@ -1,0 +1,145 @@
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+
+local LocalPlayer = Players.LocalPlayer
+
+local waveActive = false
+local movementSpeed = 2.5 
+
+local RE = ReplicatedStorage:FindFirstChild("RE")
+local TargetRemote = RE and RE:FindFirstChild("1RPNam1eColo1r") or ReplicatedStorage:FindFirstChild("1RPNam1eColo1r", true)
+
+if LocalPlayer.PlayerGui:FindFirstChild("VantaUltraSmoothPanel") then
+    LocalPlayer.PlayerGui.VantaUltraSmoothPanel:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "VantaUltraSmoothPanel"
+ScreenGui.Parent = LocalPlayer.PlayerGui
+ScreenGui.ResetOnSpawn = false
+
+local Blur = Instance.new("BlurEffect")
+Blur.Size = 0
+Blur.Parent = Lighting
+
+local CrystalLabel = Instance.new("TextLabel")
+CrystalLabel.Size = UDim2.new(0, 300, 0, 150)
+CrystalLabel.Position = UDim2.new(0.5, -150, 0.5, -75)
+CrystalLabel.BackgroundTransparency = 1
+CrystalLabel.Text = "Crystal 💠"
+CrystalLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+CrystalLabel.Font = Enum.Font.GothamBold
+CrystalLabel.TextSize = 1
+CrystalLabel.TextTransparency = 1
+CrystalLabel.Parent = ScreenGui
+
+TweenService:Create(Blur, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Size = 20}):Play()
+local crystalIn = TweenService:Create(CrystalLabel, TweenInfo.new(1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {TextSize = 50, TextTransparency = 0})
+crystalIn:Play()
+
+crystalIn.Completed:Connect(function()
+    task.wait(0.8)
+    TweenService:Create(Blur, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {Size = 0}):Play()
+    local crystalOut = TweenService:Create(CrystalLabel, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {TextSize = 80, TextTransparency = 1})
+    crystalOut:Play()
+    
+    crystalOut.Completed:Connect(function()
+        Blur:Destroy()
+        CrystalLabel:Destroy()
+    end)
+end)
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 240, 0, 140)
+MainFrame.Position = UDim2.new(0.5, -120, 0.4, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainFrame.Active = true
+MainFrame.Draggable = true 
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+Title.Text = "NAME COLOR PANEL"
+Title.TextColor3 = Color3.fromRGB(85, 200, 255)
+Title.TextSize = 12
+Title.Font = Enum.Font.GothamBold
+Title.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = Title
+
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(1, -30, 0, 45)
+ToggleBtn.Position = UDim2.new(0, 15, 0, 60)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ToggleBtn.Text = "Enable Smooth Cycle"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 13
+ToggleBtn.Parent = MainFrame
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 8)
+ToggleCorner.Parent = ToggleBtn
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    if not TargetRemote then
+        TargetRemote = ReplicatedStorage:FindFirstChild("1RPNam1eColo1r", true)
+        if not TargetRemote then
+            ToggleBtn.Text = "Error: Remote Not Found!"
+            return
+        end
+    end
+    
+    waveActive = not waveActive
+    if waveActive then
+        ToggleBtn.Text = "Smooth Cycle Active ⚡"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 60)
+    else
+        ToggleBtn.Text = "Enable Smooth Cycle"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+    end
+end)
+
+task.spawn(function()
+    local runningTime = 0
+    local colorPalette = {
+        Color3.fromRGB(0, 120, 255),
+        Color3.fromRGB(255, 0, 50),
+        Color3.fromRGB(0, 255, 100),
+        Color3.fromRGB(255, 200, 0),
+        Color3.fromRGB(170, 0, 255),
+        Color3.fromRGB(255, 100, 0)
+    }
+    
+    while true do
+        task.wait(0.05) 
+        
+        if waveActive and TargetRemote then
+            runningTime = runningTime + (0.05 * movementSpeed)
+            
+            pcall(function()
+                local totalColors = #colorPalette
+                local progress = (runningTime % totalColors)
+                local currentIndex = math.floor(progress) + 1
+                local nextIndex = (currentIndex % totalColors) + 1
+                local lerpAlpha = progress - math.floor(progress)
+                
+                local startColor = colorPalette[currentIndex]
+                local endColor = colorPalette[nextIndex]
+                
+                local smoothColor = startColor:Lerp(endColor, lerpAlpha)
+                
+                TargetRemote:FireServer("PickingRPNameColor", smoothColor)
+            end)
+        end
+    end
+end)
